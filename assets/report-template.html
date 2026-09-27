@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{REPORT_TITLE}}</title>
+<style>
+:root{--bg:#f5f7f6;--panel:#fff;--text:#172026;--muted:#607078;--line:#d8dfdc;--accent:#176b62;--soft:#edf7f4;--world:#345f8c;--world-soft:#eff6fd;--video:#a05a13;--video-soft:#fff5e7;--llm:#6741a5;--llm-soft:#f4effc;--warn:#8b5b13;--danger:#9a3037}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.58;color:var(--text);background:var(--bg)}main{max-width:1120px;margin:0 auto;padding:36px 20px 64px}header,.paper-card,.toolbar,.notice{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 22px rgba(23,32,42,.04)}header{padding:28px;margin-bottom:22px}h1{margin:0 0 10px;font-size:32px;line-height:1.16}h2{margin:0;font-size:20px;line-height:1.3}p{margin:0 0 12px}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.meta{color:var(--muted);font-size:14px}.stats{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}.stat{min-width:150px;padding:12px 14px;background:#fafcfb;border:1px solid var(--line);border-radius:8px}.stat strong{display:block;font-size:22px}.notice{padding:18px 20px;margin-bottom:22px;border-left:4px solid var(--accent)}.toolbar{padding:18px 20px;margin-bottom:22px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.toolbar input,.toolbar select{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);padding:10px 11px;border-radius:7px;font:inherit}.toolbar .actions{grid-column:1/-1}button{border:1px solid #bfdbd5;background:var(--soft);color:#185a53;border-radius:7px;padding:8px 11px;cursor:pointer;font:inherit;font-size:13px}.category-block{margin-top:28px}.category-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:8px;padding:0 2px 9px;border-bottom:1px solid var(--line)}.category-head h2{font-size:24px}.paper-card{padding:20px;margin:14px 0}.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.title-wrap{display:flex;align-items:flex-start;gap:10px;min-width:0}.rank{display:inline-grid;place-items:center;flex:0 0 34px;height:34px;border-radius:8px;color:#fff;background:var(--accent);font-weight:800}.tag-stack{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.tag{padding:2px 8px;border:1px solid #bfdbd5;border-radius:999px;color:#185a53;background:var(--soft);font-size:12px;white-space:nowrap}.tag.world-model{color:var(--world);background:var(--world-soft);border-color:#c6d9ed}.tag.video-generation{color:var(--video);background:var(--video-soft);border-color:#efd0a8}.tag.llm{color:var(--llm);background:var(--llm-soft);border-color:#d7c8ee}.tag.partial{color:var(--warn);background:#fff8e8;border-color:#ead49f}.tag.none{color:var(--danger);background:#fff1f2;border-color:#efc6ca}.paper-meta{margin:10px 0 8px;color:var(--muted);font-size:13px}.paper-summary{margin:0 0 16px;color:#344047}.paper-figure{margin:0 0 14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f8faf9}.paper-figure img{display:block;width:100%;max-height:520px;object-fit:contain;background:#fff}.paper-figure figcaption{padding:8px 11px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.paper-link{font-size:13px;margin:0}.paper-link a{display:inline-block;margin-right:12px}.hidden{display:none!important}.footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}@media(max-width:760px){main{padding:24px 14px 48px}header{padding:22px}h1{font-size:27px}.toolbar{grid-template-columns:1fr}.toolbar .actions{grid-column:auto}.card-head{display:block}.tag-stack{justify-content:flex-start;margin:10px 0}.paper-figure img{max-height:380px}}@media print{body{background:#fff}main{max-width:none;padding:16px}.toolbar{display:none}header,.paper-card,.notice{box-shadow:none}.paper-card{break-inside:avoid}.paper-figure img{max-height:360px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>{{REPORT_TITLE}}</h1>
+  <p class="meta">{{REPORT_SUBTITLE}}</p>
+  <div class="stats">
+    <div class="stat"><strong>{{SELECTION_COUNT}}</strong><span class="meta">ranked selections</span></div>
+    <div class="stat"><strong>{{UNIQUE_COUNT}}</strong><span class="meta">unique papers</span></div>
+    <div class="stat"><strong>{{TOPIC_COUNT}}</strong><span class="meta">research themes</span></div>
+    <div class="stat"><strong id="visibleNum">{{SELECTION_COUNT}}</strong><span class="meta">currently shown</span></div>
+  </div>
+</header>
+<section class="notice"><h2>Selection criteria</h2><p>{{METHODOLOGY}}</p></section>
+<section class="toolbar" aria-label="Paper filters">
+  <input id="search" type="search" placeholder="Search titles, affiliations, methods, or summaries…" aria-label="Search papers">
+  <select id="topic" aria-label="Topic"><option value="">All topics</option>{{TOPIC_OPTIONS}}</select>
+  <select id="release" aria-label="Release status"><option value="">All release statuses</option><option value="full">Code, model, or data available</option><option value="partial">Project page or partial release</option><option value="none">No open artifact found</option></select>
+  <div class="actions"><button id="clearBtn" type="button">Clear filters</button></div>
+</section>
+{{PAPER_SECTIONS}}
+<div class="footer">{{FOOTER}}</div>
+</main>
+<script>
+const cards=[...document.querySelectorAll('.paper-card')],search=document.getElementById('search'),topic=document.getElementById('topic'),release=document.getElementById('release'),visibleNum=document.getElementById('visibleNum');
+function filterCards(){const term=search.value.trim().toLowerCase();let count=0;document.querySelectorAll('.category-block').forEach(block=>{let blockCount=0;block.querySelectorAll('.paper-card').forEach(card=>{const match=(!term||card.innerText.toLowerCase().includes(term))&&(!topic.value||card.dataset.topic===topic.value)&&(!release.value||card.dataset.release===release.value);card.classList.toggle('hidden',!match);if(match){count++;blockCount++;}});block.classList.toggle('hidden',blockCount===0);});visibleNum.textContent=count;}
+[search,topic,release].forEach(element=>element.addEventListener('input',filterCards));document.getElementById('clearBtn').addEventListener('click',()=>{search.value='';topic.value='';release.value='';filterCards();});filterCards();
+</script>
+</body>
+</html>

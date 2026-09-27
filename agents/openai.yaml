@@ -1,0 +1,5 @@
+interface:
+  display_name: "arXiv Reading"
+  short_description: "Rank and summarize daily arXiv papers"
+  brand_color: "#176B62"
+  default_prompt: "Use $arxiv-reading to rank papers from an arXiv listing date and produce an English HTML digest."
