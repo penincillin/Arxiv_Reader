@@ -81,13 +81,18 @@ def collect_listings(day: dt.date, categories: list[str]) -> dict[str, dict]:
     papers: dict[str, dict] = {}
     for category in categories:
         found: list[tuple[str, str]] = []
+        errors: list[str] = []
+        month_scan_complete = False
         routes = ["pastweek", day.strftime("%Y-%m")]
         for route in routes:
+            route_failed = False
             for skip in range(0, 10000, 2000):
                 url = f"https://arxiv.org/list/{category}/{route}?skip={skip}&show=2000"
                 try:
                     page = fetch(url).decode("utf-8", "replace")
-                except Exception:
+                except Exception as error:
+                    errors.append(f"{url}: {type(error).__name__}: {error}")
+                    route_failed = True
                     break
                 batch = parse_listing(page, label)
                 if batch:
@@ -97,6 +102,13 @@ def collect_listings(day: dt.date, categories: list[str]) -> dict[str, dict]:
                     break
             if found:
                 break
+            if route != "pastweek" and not route_failed:
+                month_scan_complete = True
+        if not found and not month_scan_complete and errors:
+            details = "; ".join(errors)
+            raise RuntimeError(
+                f"Could not verify the {category} listing for {day}: {details}"
+            )
         for arxiv_id, title in found:
             paper = papers.setdefault(
                 arxiv_id,
@@ -113,7 +125,9 @@ def enrich(papers: dict[str, dict]) -> None:
         query = urllib.parse.urlencode({"id_list": ",".join(chunk), "max_results": len(chunk)})
         root = ET.fromstring(fetch("https://export.arxiv.org/api/query?" + query))
         for entry in root.findall("a:entry", ATOM):
-            arxiv_id = entry.findtext("a:id", "", ATOM).rsplit("/", 1)[-1].split("v")[0]
+            arxiv_id = re.sub(
+                r"v\d+$", "", entry.findtext("a:id", "", ATOM).rsplit("/", 1)[-1]
+            )
             if arxiv_id not in papers:
                 continue
             paper = papers[arxiv_id]
@@ -127,6 +141,11 @@ def enrich(papers: dict[str, dict]) -> None:
                 published=entry.findtext("a:published", "", ATOM),
                 updated=entry.findtext("a:updated", "", ATOM),
                 pdf_url=f"https://arxiv.org/pdf/{arxiv_id}",
+            )
+        missing = [arxiv_id for arxiv_id in chunk if "abstract" not in papers[arxiv_id]]
+        if missing:
+            raise RuntimeError(
+                "arXiv API returned incomplete metadata for: " + ", ".join(missing)
             )
         if start + 100 < len(ids):
             time.sleep(3.1)
@@ -164,6 +183,7 @@ def main() -> int:
         "listing_date": args.date.isoformat(),
         "monitored_categories": args.categories,
         "unique_papers": len(records),
+        "listing_appearances": sum(len(paper["listed_categories"]) for paper in records),
         "papers": records,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

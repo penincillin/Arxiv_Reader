@@ -35,7 +35,7 @@ import argparse
 import html
 import json
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 CJK = re.compile(r"[\u3400-\u9fff]")
@@ -44,6 +44,22 @@ VALID_RELEASES = {"full", "partial", "none"}
 
 def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
+
+
+def resolve_figure(output_directory: Path, value: object) -> Path:
+    relative = PurePosixPath(str(value))
+    if (
+        relative.is_absolute()
+        or len(relative.parts) < 2
+        or relative.parts[0] != "figures"
+        or ".." in relative.parts
+    ):
+        raise ValueError(f"figure path must be beneath figures/: {value}")
+    figures_directory = (output_directory / "figures").resolve()
+    figure = (output_directory / Path(*relative.parts)).resolve()
+    if figure.parent != figures_directory and figures_directory not in figure.parents:
+        raise ValueError(f"figure path escapes figures/: {value}")
+    return figure
 
 
 def paper_card(topic: str, paper: dict) -> str:
@@ -132,7 +148,7 @@ def main() -> int:
     payload = json.loads(args.selection.read_text())
     for section in payload.get("sections", []):
         for paper in section.get("papers", []):
-            figure = args.output.parent / paper.get("figure", "")
+            figure = resolve_figure(args.output.parent, paper.get("figure", ""))
             if not figure.is_file() or figure.stat().st_size == 0:
                 raise ValueError(f"missing or empty figure for {paper.get('arxiv_id', 'paper')}: {figure}")
     document = render(payload, args.template.read_text())

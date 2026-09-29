@@ -3,9 +3,10 @@
 
 Priority:
 1. An explicit --figure-url override.
-2. A meaningful hero/overview image from --project-url.
-3. The best-scoring figure exposed by arXiv HTML.
-4. A real figure file extracted from the arXiv source archive.
+2. An explicit --source-member override.
+3. A meaningful hero/overview image from --project-url.
+4. The best-scoring figure exposed by arXiv HTML.
+5. A real figure file extracted from the arXiv source archive.
 
 The command fails when it cannot find a paper figure. It deliberately does not
 render the first PDF page as a fallback.
@@ -157,6 +158,22 @@ def extract_source_member(archive: bytes, member_name: str) -> tuple[bytes, str]
         return source.read(), content_type
 
 
+def try_remote_candidates(
+    candidates: list[tuple[int, str, str]], label: str, output: Path
+) -> bool:
+    """Try candidates in score order and leave fallback decisions to the caller."""
+    for _, url, caption in sorted(candidates, key=lambda candidate: candidate[0], reverse=True):
+        try:
+            data, content_type = fetch(url)
+            convert_to_png(data, content_type, output)
+        except Exception as error:
+            print(f"{label} candidate failed ({url}): {error}", file=sys.stderr)
+            continue
+        print(f"{label}: {url}\ncaption: {caption}")
+        return True
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("arxiv_id")
@@ -173,17 +190,20 @@ def main() -> int:
         print(f"explicit figure: {args.figure_url}")
         return 0
 
+    if args.source_member:
+        archive, _ = fetch(f"https://export.arxiv.org/e-print/{args.arxiv_id}")
+        data, content_type = extract_source_member(archive, args.source_member)
+        convert_to_png(data, content_type, args.output)
+        print(f"arXiv source figure: {args.source_member}\ncaption: Explicit source-member override")
+        return 0
+
     if args.project_url:
         try:
             candidates = html_candidates(args.project_url, project_page=True)
         except Exception as error:
             print(f"project-page lookup failed: {error}", file=sys.stderr)
             candidates = []
-        if candidates:
-            _, url, caption = max(candidates)
-            data, content_type = fetch(url)
-            convert_to_png(data, content_type, args.output)
-            print(f"project figure: {url}\ncaption: {caption}")
+        if try_remote_candidates(candidates, "project figure", args.output):
             return 0
 
     try:
@@ -191,18 +211,11 @@ def main() -> int:
     except Exception as error:
         print(f"arXiv HTML lookup failed: {error}", file=sys.stderr)
         candidates = []
-    if candidates:
-        _, url, caption = max(candidates)
-        data, content_type = fetch(url)
-        convert_to_png(data, content_type, args.output)
-        print(f"arXiv HTML figure: {url}\ncaption: {caption}")
+    if try_remote_candidates(candidates, "arXiv HTML figure", args.output):
         return 0
 
     archive, candidates = source_candidates(args.arxiv_id)
-    if args.source_member:
-        selected = args.source_member
-        caption = "Explicit source-member override"
-    elif candidates:
+    if candidates:
         _, selected, caption = max(candidates)
     else:
         raise RuntimeError("No paper figure found; refusing to use a page screenshot")
